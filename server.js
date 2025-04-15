@@ -4,6 +4,10 @@ const { Groq } = require('groq-sdk');
 const path = require('path');
 const fs = require('fs');
 const { Readable } = require('stream');
+const dotenv = require('dotenv');
+
+// Load environment variables from .env file
+dotenv.config();
 
 // Initialize Express app
 const app = express();
@@ -11,7 +15,7 @@ const PORT = process.env.PORT || 3001;
 
 // Configure Groq client
 const groq = new Groq({
-  apiKey: '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',
+  apiKey: process.env.API_KEY,
 });
 
 // Configure multer for file uploads
