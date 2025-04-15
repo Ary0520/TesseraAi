@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multilingual AI Assistant</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Image modal for fullscreen view -->
+    <div id="image-modal" class="image-modal">
+        <img id="modal-image" src="" alt="Fullscreen image">
+    </div>
+
+    <div class="container">
+        <header>
+            <h1>Multilingual AI Assistant</h1>
+            <div class="language-selector">
+                <label for="language">Select Language:</label>
+                <select id="language">
+                    <option value="en">English</option>
+                    <option value="es">Spanish</option>
+                    <option value="fr">French</option>
+                    <option value="de">German</option>
+                    <option value="zh">Chinese</option>
+                    <option value="ja">Japanese</option>
+                    <option value="hi">Hindi</option>
+                    <option value="ar">Arabic</option>
+                </select>
+            </div>
+        </header>
+
+        <main>
+            <div class="chat-container">
+                <div id="chat-messages" class="chat-messages"></div>
+            </div>
+
+            <div class="input-container">
+                <div class="text-input">
+                    <textarea id="user-input" placeholder="Type your message here..."></textarea>
+                    <button id="send-btn">Send</button>
+                </div>
+
+                <div class="media-inputs">
+                    <button id="voice-btn" class="media-btn" title="Record audio message">
+                        <span class="icon">🎤</span>
+                    </button>
+                    <button id="image-btn" class="media-btn" title="Upload image">
+                        <span class="icon">📷</span>
+                    </button>
+                    <!-- <button id="help-btn" class="media-btn help-btn" title="Recording tips">
+                        <span class="icon">❓</span>
+                    </button> -->
+                    <input type="file" id="image-upload" accept="image/*" style="display: none;">
+                </div>
+            </div>
+        </main>
+
+        <div id="status-indicator" class="status-indicator"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
