@@ -6,8 +6,9 @@
     <meta name="theme-color" content="#0a0a1e">
     <meta name="description" content="A premium multilingual AI assistant that understands text, voice, and images">
     <title>NEXUS AI | Advanced Multilingual Assistant</title>
-    <link rel="stylesheet" href="/btn.css">
-    <link rel="stylesheet" href="/landing.css">
+    <link rel="stylesheet" href="../css/btn.css">
+    <link rel="stylesheet" href="../css/landing.css">
+    <link rel="stylesheet" href="../css/user-profile-button.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -21,15 +22,15 @@
 <body>
     <!-- Particle background -->
     <div id="particles-js"></div>
-    
+
     <!-- Glowing orb effect -->
     <div class="orb-container">
         <div class="orb"></div>
     </div>
-    
+
     <!-- Animated grid background -->
     <div class="grid-background"></div>
-    
+
     <!-- Main content -->
     <div class="landing-container">
         <header>
@@ -41,6 +42,32 @@
             </div>
             <nav>
                 <ul>
+                    <!-- From Uiverse.io by reglobby -->
+                    <li>
+                        <a href="/login">
+                        <div
+                          aria-label="User Login Button"
+                          tabindex="0"
+                          role="button"
+                          class="user-profile"
+                        >
+                          <div class="user-profile-inner">
+                            <svg
+                              aria-hidden="true"
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                            >
+                              <g data-name="Layer 2" id="Layer_2">
+                                <path
+                                  d="m15.626 11.769a6 6 0 1 0 -7.252 0 9.008 9.008 0 0 0 -5.374 8.231 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 9.008 9.008 0 0 0 -5.374-8.231zm-7.626-4.769a4 4 0 1 1 4 4 4 4 0 0 1 -4-4zm10 14h-12a1 1 0 0 1 -1-1 7 7 0 0 1 14 0 1 1 0 0 1 -1 1z"
+                                ></path>
+                              </g>
+                            </svg>
+                            <p>Log In</p>
+                          </div>
+                        </div>
+                        </a>
+                    </li>
                     <li><a href="#features" class="nav-link">Features</a></li>
                     <li><a href="#capabilities" class="nav-link">Capabilities</a></li>
                     <li><a href="#about" class="nav-link">About</a></li>
@@ -68,7 +95,7 @@
                         </div>
                     </div>
 
-                    <!-- From Uiverse.io by MuhammadHasann --> 
+                    <!-- From Uiverse.io by MuhammadHasann -->
 <button class="button">
     <div class="dots_border"></div>
     <svg
@@ -102,9 +129,11 @@
         d="M6.5 4L6.303 4.5915C6.24777 4.75718 6.15472 4.90774 6.03123 5.03123C5.90774 5.15472 5.75718 5.24777 5.5915 5.303L5 5.5L5.5915 5.697C5.75718 5.75223 5.90774 5.84528 6.03123 5.96877C6.15472 6.09226 6.24777 6.24282 6.303 6.4085L6.5 7L6.697 6.4085C6.75223 6.24282 6.84528 6.09226 6.96877 5.96877C7.09226 5.84528 7.24282 5.75223 7.4085 5.697L8 5.5L7.4085 5.303C7.24282 5.24777 7.09226 5.15472 6.96877 5.03123C6.84528 4.90774 6.75223 4.75718 6.697 4.5915L6.5 4Z"
       ></path>
     </svg>
-    <span class="text_button ">Get Started</span>
+    <a href="/register">
+        <span class="text_button ">Get Started</span>
+    </a>
   </button>
-  
+
 
                     <!-- <div class="cta-container">
                         <button id="enter-btn" class="cta-button">
@@ -259,7 +288,7 @@
                     <p>Whether you need information, assistance, or just a conversation, NEXUS AI is here to help with a premium experience that feels both futuristic and accessible.</p>
                 </div>
             </section>
-            
+
             <!-- Testimonials section -->
             <section id="testimonials" class="testimonials-section">
                 <h2 class="section-title">User <span class="highlight">Experiences</span></h2>
@@ -346,6 +375,6 @@
     <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/ScrollTrigger.min.js"></script>
-    <script src="/landing.js"></script>
+    <script src="../js/landing.js"></script>
 </body>
 </html>

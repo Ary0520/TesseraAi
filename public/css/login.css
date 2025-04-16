@@ -219,6 +219,24 @@ body {
   margin-bottom: 30px;
 }
 
+/* Error alert */
+.error-alert {
+  background-color: rgba(255, 82, 82, 0.2);
+  border: 1px solid var(--error-color);
+  color: var(--error-color);
+  padding: 10px 15px;
+  border-radius: 8px;
+  margin-top: 15px;
+  font-size: 14px;
+  text-align: center;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .form-group {
   margin-bottom: 20px;
 }

@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#0a0a1e">
     <meta name="description" content="Login to NEXUS AI - Advanced Multilingual Assistant">
     <title>Login | NEXUS AI</title>
-    <link rel="stylesheet" href="login.css">
+    <link rel="stylesheet" href="../css/login.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -34,11 +34,16 @@
                     </div>
                     <h1>NEXUS<span>AI</span></h1>
                 </div>
-                <h2>Register</h2>
+                <h2>Login</h2>
                 <p>Access your premium AI assistant</p>
+                <% if (typeof error !== 'undefined') { %>
+                <div class="error-alert">
+                    <%= error %>
+                </div>
+                <% } %>
             </div>
 
-            <form id="login-form" class="login-form">
+            <form id="login-form" class="login-form" action="/login" method="POST">
                 <div class="form-group">
                     <label for="email">Email</label>
                     <div class="input-container">
@@ -72,6 +77,7 @@
                         <input type="checkbox" id="remember" name="remember">
                         <label for="remember">Remember me</label>
                     </div>
+                    <a href="#" class="forgot-password">Forgot password?</a>
                 </div>
 
                 <button type="submit" class="login-button">
@@ -81,7 +87,7 @@
             </form>
 
             <div class="login-footer">
-                <p>Already have an account? <a href="#">Login</a></p>
+                <p>Don't have an account? <a href="/register">Sign up</a></p>
             </div>
         </div>
     </div>
@@ -150,11 +156,11 @@
             const passwordError = document.getElementById('password-error');
 
             loginForm.addEventListener('submit', function(e) {
-                e.preventDefault();
                 let isValid = true;
 
                 // Validate email
                 if (!emailInput.value.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+                    e.preventDefault(); // Only prevent default if validation fails
                     emailError.textContent = 'Please enter a valid email address';
                     isValid = false;
                 } else {
@@ -163,22 +169,19 @@
 
                 // Validate password
                 if (passwordInput.value.length < 6) {
+                    e.preventDefault(); // Only prevent default if validation fails
                     passwordError.textContent = 'Password must be at least 6 characters';
                     isValid = false;
                 } else {
                     passwordError.textContent = '';
                 }
 
-                // If valid, simulate login
+                // If valid, show loading spinner but allow form submission
                 if (isValid) {
                     const loginButton = document.querySelector('.login-button');
                     loginButton.innerHTML = '<span class="loading-spinner"></span>';
                     loginButton.disabled = true;
-
-                    // Simulate API call
-                    setTimeout(() => {
-                        window.location.href = 'index.html';
-                    }, 1500);
+                    // Form will submit naturally to the server
                 }
             });
 

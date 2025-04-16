@@ -3,16 +3,57 @@ const multer = require('multer');
 const { Groq } = require('groq-sdk');
 const path = require('path');
 const fs = require('fs');
+const bcrypt =require('bcrypt');
+const jwt = require('jsonwebtoken');
 const { Readable } = require('stream');
 const dotenv = require('dotenv');
+// Try to require cookie-parser, or use a simple middleware if not available
+let cookieParser;
+try {
+  cookieParser = require('cookie-parser');
+} catch (err) {
+  console.log('cookie-parser not installed, using simple cookie parser');
+  // Simple cookie parser middleware
+  cookieParser = function() {
+    return function(req, res, next) {
+      req.cookies = {};
+      if (req.headers.cookie) {
+        req.headers.cookie.split(';').forEach(function(cookie) {
+          const parts = cookie.match(/(.*?)=(.*)/);
+          if (parts) {
+            req.cookies[parts[1].trim()] = (parts[2] || '').trim();
+          }
+        });
+      }
+      // Add a simple res.cookie function
+      res.cookie = function(name, value) {
+        const cookie = name + '=' + value;
+        res.setHeader('Set-Cookie', cookie);
+      };
+      next();
+    };
+  };
+}
 const { Buffer } = require('buffer');
+const app = express();
+const PORT = process.env.PORT || 3000; // Changed port to 3001
+const userModel = require("./models/user");
 
 // Load environment variables from .env file
 dotenv.config();
 
-// Initialize Express app
-const app = express();
-const PORT = process.env.PORT || 3002; // Changed port to 3002
+// Set a default JWT secret key if not provided in .env
+if (!process.env.JWT_SECRET_KEY) {
+  process.env.JWT_SECRET_KEY = 'default_jwt_secret_key_for_development';
+  console.log('Warning: Using default JWT_SECRET_KEY. Set this in your .env file for production.');
+}
+
+// Middleware
+app.use(express.json());
+app.use(express.static(path.join(__dirname, "public")));
+app.use(express.urlencoded({ extended: true }));
+// Add cookie-parser middleware
+app.use(cookieParser());
 
 // Set view engine
 app.set("view engine", "ejs");
@@ -29,22 +70,138 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
-// Middleware
-app.use(express.json());
-app.use(express.static(path.join(__dirname)));
+const isAuthenticated = (req, res, next)=>{
+  let token = req.cookies.token;
+  if(!token){
+      return res.redirect("/login");
+  }
+  jwt.verify(token, process.env.JWT_SECRET_KEY, function(err, decoded) {
+      if(err){
+          return res.redirect("/login");
+      }
+      req.user = decoded;
+      next();
+    });
+};
+
 
 // Routes
-app.get("/landing", (req, res) => {
+app.get("/", (req, res) => {
   res.render("landing");
 });
 
-app.get('/login', (req, res) => {
-  res.sendFile(path.join(__dirname, 'login.html'));
+app.get("/chatbot", isAuthenticated, (req, res)=>{
+  res.render("index");
 });
 
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+app.get("/register", (req, res)=>{
+  res.render("register");
+})
+app.post("/register", async(req, res)=>{
+  try {
+    let {email, password} = req.body;
+
+    // Check if user already exists
+    let existingUser = await userModel.findOne({email}).catch(err => {
+      console.error('Error checking for existing user:', err.message);
+      return null;
+    });
+
+    if(existingUser){
+      console.log(`User with email ${email} already exists`);
+      return res.render("register", {error: "User already exists"});
+    }
+
+    // Hash password and create user
+    bcrypt.genSalt(10, function(saltErr, salt) {
+      if (saltErr) {
+        console.error('Error generating salt:', saltErr.message);
+        return res.render("register", {error: "Registration failed. Please try again."});
+      }
+
+      bcrypt.hash(password, salt, async function(hashErr, hash) {
+        if (hashErr) {
+          console.error('Error hashing password:', hashErr.message);
+          return res.render("register", {error: "Registration failed. Please try again."});
+        }
+
+        try {
+          // Create the user
+          let newUser = await userModel.create({
+            email,
+            password: hash
+          });
+
+          console.log(`User created successfully with email: ${email}`);
+
+          // Generate JWT token
+          let token = jwt.sign({ email }, process.env.JWT_SECRET_KEY);
+          res.cookie("token", token);
+
+          // Redirect to chatbot page
+          return res.redirect("/chatbot");
+        } catch (createErr) {
+          console.error('Error creating user:', createErr.message);
+          return res.render("register", {error: "Registration failed. Please try again."});
+        }
+      });
+    });
+  } catch (error) {
+    console.error('Unexpected error during registration:', error.message);
+    return res.render("register", {error: "An unexpected error occurred. Please try again."});
+  }
+})
+
+app.get('/login', (req, res) => {
+  res.render("login");
 });
+
+app.post('/login', async(req, res) => {
+  try {
+    const {email, password} = req.body;
+
+    // Log the login attempt
+    console.log(`Login attempt for email: ${email}`);
+
+    // Find the user
+    const user = await userModel.findOne({email}).catch(err => {
+      console.error('Error finding user:', err.message);
+      return null;
+    });
+
+    if (!user) {
+      console.log(`User with email ${email} not found`);
+      return res.render("login", {error: "Invalid email or password"});
+    }
+
+    // Compare passwords
+    bcrypt.compare(password, user.password, function(err, result) {
+      if (err) {
+        console.error('Error comparing passwords:', err.message);
+        return res.render("login", {error: "An error occurred. Please try again."});
+      }
+
+      if (!result) {
+        console.log(`Invalid password for user ${email}`);
+        return res.render("login", {error: "Invalid email or password"});
+      }
+
+      // Generate JWT token
+      const token = jwt.sign({ email }, process.env.JWT_SECRET_KEY);
+      res.cookie("token", token);
+
+      // Redirect to chatbot page
+      return res.redirect("/chatbot");
+    });
+  } catch (error) {
+    console.error('Unexpected error during login:', error.message);
+    return res.render("login", {error: "An unexpected error occurred. Please try again."});
+  }
+});
+
+// app.get('/', (req, res) => {
+//   res.sendFile(path.join(__dirname, 'index.html'));
+// });
 
 // Text chat endpoint
 app.post('/api/chat', async (req, res) => {

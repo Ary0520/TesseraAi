@@ -1,0 +1,104 @@
+/* From Uiverse.io by reglobby */
+/* Navbar integration styles */
+nav ul li a {
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+}
+
+nav ul li {
+  display: flex;
+  align-items: center;
+}
+
+.user-profile {
+  width: 131px;
+  height: 51px;
+  border-radius: 15px;
+  cursor: pointer;
+  transition: 0.3s ease;
+  background: linear-gradient(
+    to bottom right,
+    #2e8eff 0%,
+    rgba(46, 142, 255, 0) 30%
+  );
+  background-color: rgba(46, 142, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-profile:hover,
+.user-profile:focus {
+  background-color: rgba(46, 142, 255, 0.7);
+  box-shadow: 0 0 10px rgba(46, 142, 255, 0.5);
+  outline: none;
+}
+
+.user-profile-inner {
+  width: 127px;
+  height: 47px;
+  border-radius: 13px;
+  background-color: #1a1a1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  color: #fff;
+  font-weight: 600;
+}
+
+.user-profile-inner svg {
+  width: 27px;
+  height: 27px;
+  fill: #fff;
+}
+
+/* Responsive styles for the login button */
+@media (max-width: 768px) {
+  .user-profile {
+    width: 110px;
+    height: 45px;
+  }
+
+  .user-profile-inner {
+    width: 106px;
+    height: 41px;
+    gap: 10px;
+  }
+
+  .user-profile-inner svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .user-profile-inner p {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .user-profile {
+    width: 90px;
+    height: 40px;
+  }
+
+  .user-profile-inner {
+    width: 86px;
+    height: 36px;
+    gap: 8px;
+  }
+
+  .user-profile-inner svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .user-profile-inner p {
+    font-size: 12px;
+  }
+
+  nav ul {
+    gap: 10px !important;
+  }
+}
