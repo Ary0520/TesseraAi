@@ -1,4 +1,4 @@
-// NEXUS AI - Premium Landing Page JavaScript
+// TESSERA AI - Premium Landing Page JavaScript
 
 // Initialize particles.js
 document.addEventListener('DOMContentLoaded', function() {
