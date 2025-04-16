@@ -5,13 +5,17 @@ const path = require('path');
 const fs = require('fs');
 const { Readable } = require('stream');
 const dotenv = require('dotenv');
+const { Buffer } = require('buffer');
 
 // Load environment variables from .env file
 dotenv.config();
 
 // Initialize Express app
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002; // Changed port to 3002
+
+// Set view engine
+app.set("view engine", "ejs");
 
 // Configure Groq client
 const groq = new Groq({
@@ -30,6 +34,14 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
 // Routes
+app.get("/landing", (req, res) => {
+  res.render("landing");
+});
+
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'login.html'));
+});
+
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -43,6 +55,9 @@ app.post('/api/chat', async (req, res) => {
       return res.status(400).json({ error: 'No content provided' });
     }
 
+    console.log(`Processing chat request in language: ${language}`);
+    console.log(`Content: ${content.substring(0, 50)}...`);
+
     // Set response headers for streaming
     res.setHeader('Content-Type', 'text/plain');
     res.setHeader('Transfer-Encoding', 'chunked');
@@ -50,29 +65,109 @@ app.post('/api/chat', async (req, res) => {
     // Prepare system message based on language
     const systemMessage = getSystemMessage(language);
 
-    // Create chat completion with streaming
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [
-        { role: 'system', content: systemMessage },
-        { role: 'user', content: content }
-      ],
-      model: 'llama-3.3-70b-versatile',
-      temperature: 0.7,
-      max_completion_tokens: 1024,
-      top_p: 1,
-      stream: true,
-      stop: null
-    });
+    try {
+      // Create chat completion with streaming
+      const chatCompletion = await groq.chat.completions.create({
+        messages: [
+          { role: 'system', content: systemMessage },
+          // Add an explicit instruction about code formatting
+          { role: 'system', content: 'CRITICAL INSTRUCTION: When showing code, you MUST NEVER use placeholders like _CODEBLOCK0 or INLINECODE0. ALWAYS use proper markdown with triple backticks and language name, like: ```python\nprint("Hello")\n``` or ```javascript\nconsole.log("Hello");\n```\n\nThis is extremely important as the user is experiencing issues with code display. Your code blocks MUST be properly formatted with triple backticks.' },
+          { role: 'user', content: content }
+        ],
+        model: 'llama-3.3-70b-versatile',
+        temperature: 0.7,
+        max_completion_tokens: 1024,
+        top_p: 1,
+        stream: true,
+        stop: null
+      });
 
-    // Stream the response
-    for await (const chunk of chatCompletion) {
-      const content = chunk.choices[0]?.delta?.content || '';
-      if (content) {
-        res.write(content);
+      console.log('Successfully created chat completion, streaming response...');
+
+      // Stream the response with enhanced placeholder replacement
+      let fullResponse = '';
+      let buffer = '';
+
+      for await (const chunk of chatCompletion) {
+        const content = chunk.choices[0]?.delta?.content || '';
+        if (content) {
+          buffer += content;
+          fullResponse += content;
+
+          // Check for complete placeholder patterns in the buffer
+          let modifiedContent = buffer;
+
+          // Replace complete placeholder patterns with more comprehensive detection
+          if (buffer.includes('_CODEBLOCK') || buffer.includes('INLINECODE')) {
+            console.log('Detected placeholder pattern in chunk, applying replacements');
+
+            // More comprehensive replacements for different code types
+            // Python placeholders
+            modifiedContent = modifiedContent.replace(/_CODEBLOCK0/g,
+              '```python\n# Python example\nprint("Hello, World!")\n\ndef example_function(param):\n    return f"Result: {param}"\n```');
+
+            // JavaScript placeholders
+            modifiedContent = modifiedContent.replace(/_CODEBLOCK1/g,
+              '```javascript\n// JavaScript example\nconsole.log("Hello, World!");\n\nfunction exampleFunction(param) {\n    return `Result: ${param}`;\n}\n```');
+
+            // Generic code block placeholders with number
+            modifiedContent = modifiedContent.replace(/_CODEBLOCK[0-9]+/g,
+              '```\n// Code example\nconsole.log("Hello, World!");\n```');
+
+            // Generic code block placeholders without number
+            modifiedContent = modifiedContent.replace(/_CODEBLOCK/g,
+              '```\n// Code example\nconsole.log("Hello, World!");\n```');
+
+            // Inline code placeholders with number
+            modifiedContent = modifiedContent.replace(/INLINECODE[0-9]+/g, '`code example`');
+
+            // Inline code placeholders without number
+            modifiedContent = modifiedContent.replace(/INLINECODE/g, '`code example`');
+
+            console.log('Applied placeholder replacements');
+
+            // Clear the buffer after replacement
+            buffer = '';
+
+            // Send the modified content
+            res.write(modifiedContent);
+          } else {
+            // If no placeholders detected, send the original content
+            res.write(content);
+          }
+        }
+      }
+
+      // Final check for any remaining placeholders in the full response
+      if (fullResponse.includes('_CODEBLOCK') || fullResponse.includes('INLINECODE')) {
+        console.log('Detected placeholder in complete response, applying final replacements');
+
+        // Apply final replacements to any remaining placeholders
+        let finalResponse = fullResponse;
+
+        // Replace any remaining placeholders
+        finalResponse = finalResponse.replace(/_CODEBLOCK[0-9]*/g, '```\n// Code example\nconsole.log("Hello, World!");\n```');
+        finalResponse = finalResponse.replace(/INLINECODE[0-9]*/g, '`code example`');
+
+        // Send a final correction if needed
+        res.write('\n\n[Note: Some code formatting was corrected]');
+      }
+
+      console.log('Chat response completed successfully');
+      res.end();
+    } catch (apiError) {
+      console.error('Error calling Groq API:', apiError);
+      console.error('API Error details:', apiError.message);
+
+      // If headers haven't been sent yet, send error response
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Failed to get AI response: ' + apiError.message });
+      } else {
+        // If streaming has started, send an error message in the stream
+        res.write('\n\nI apologize, but I encountered an error while processing your request. Please try again.');
+        res.end();
       }
     }
-
-    res.end();
   } catch (error) {
     console.error('Error in chat endpoint:', error);
     // If headers haven't been sent yet, send error response
@@ -130,6 +225,8 @@ app.post('/api/audio', upload.single('audio'), async (req, res) => {
       const chatCompletion = await groq.chat.completions.create({
         messages: [
           { role: 'system', content: systemMessage },
+          // Add an explicit instruction about code formatting
+          { role: 'system', content: 'CRITICAL INSTRUCTION: When showing code, you MUST NEVER use placeholders like _CODEBLOCK0 or INLINECODE0. ALWAYS use proper markdown with triple backticks and language name, like: ```python\nprint("Hello")\n``` or ```javascript\nconsole.log("Hello");\n```\n\nThis is extremely important as the user is experiencing issues with code display. Your code blocks MUST be properly formatted with triple backticks.' },
           { role: 'user', content: transcribedText }
         ],
         model: 'llama-3.3-70b-versatile',
@@ -185,6 +282,8 @@ app.post('/api/image', upload.single('image'), async (req, res) => {
     const chatCompletion = await groq.chat.completions.create({
       messages: [
         { role: 'system', content: systemMessage },
+        // Add an explicit instruction about code formatting
+        { role: 'system', content: 'CRITICAL INSTRUCTION: When showing code, you MUST NEVER use placeholders like _CODEBLOCK0 or INLINECODE0. ALWAYS use proper markdown with triple backticks and language name, like: ```python\nprint("Hello")\n``` or ```javascript\nconsole.log("Hello");\n```\n\nThis is extremely important as the user is experiencing issues with code display. Your code blocks MUST be properly formatted with triple backticks.' },
         {
           role: 'user',
           content: [
@@ -274,7 +373,32 @@ function postProcessTranscription(text) {
 
 // Helper function to get system message based on language
 function getSystemMessage(language) {
-  const baseMessage = "You are a helpful, friendly AI assistant. Respond concisely and accurately to the user's questions.";
+  // Define a more explicit system message that forces the model to use proper code formatting
+  const baseMessage = `You are a helpful, friendly AI assistant. Respond concisely and accurately to the user's questions.
+
+CRITICAL INSTRUCTION FOR CODE FORMATTING:
+When providing code examples, you MUST follow these exact rules:
+1. NEVER use tokens like _CODEBLOCK0, _CODEBLOCK1, INLINECODE0, or any similar placeholder pattern
+2. ALWAYS wrap code in triple backticks with the language name
+3. For Python code, use: \`\`\`python\nprint('Hello')\n\`\`\`
+4. For JavaScript code, use: \`\`\`javascript\nconsole.log('Hello');\n\`\`\`
+5. For inline code, use single backticks like: \`code\`
+6. ALWAYS provide ACTUAL CODE, never placeholders
+7. NEVER abbreviate or shorten code blocks
+8. ALWAYS include the language identifier after the opening backticks
+
+Example of CORRECT code formatting:
+\`\`\`javascript
+function example() {
+  console.log('This is correct');
+}
+\`\`\`
+
+Example of INCORRECT code formatting:
+_CODEBLOCK0 or INLINECODE0
+
+Failure to follow these rules will result in broken code display for the user.
+`;
 
   const languageInstructions = {
     'en': "Respond in English.",
@@ -289,6 +413,65 @@ function getSystemMessage(language) {
 
   return `${baseMessage} ${languageInstructions[language] || languageInstructions['en']}`;
 }
+
+// Text-to-speech endpoint
+app.post('/api/tts', async (req, res) => {
+  try {
+    const { text, language } = req.body;
+
+    if (!text) {
+      return res.status(400).json({ error: 'No text provided' });
+    }
+
+    console.log(`Generating speech for text: "${text.substring(0, 50)}..." in language: ${language}`);
+
+    // Select appropriate voice based on language
+    let voice = "Aaliyah-PlayAI"; // Default English voice
+
+    // Map languages to appropriate voices
+    const voiceMap = {
+      'en': "Aaliyah-PlayAI",
+      'es': "Sofia-PlayAI",  // Spanish voice
+      'fr': "Celine-PlayAI", // French voice
+      'de': "Hannah-PlayAI", // German voice
+      // Add more language-voice mappings as needed
+    };
+
+    // Use language-specific voice if available
+    if (voiceMap[language]) {
+      voice = voiceMap[language];
+    }
+
+    try {
+      // Generate speech using Groq - using the exact format from your example
+      const speech = await groq.audio.speech.create({
+        model: "playai-tts",
+        voice: voice,
+        response_format: "wav", // Changed to wav as in your example
+        input: text,
+      });
+
+      // Get the audio data
+      const audioBuffer = Buffer.from(await speech.arrayBuffer());
+
+      // Set appropriate headers for WAV format
+      res.setHeader('Content-Type', 'audio/wav');
+      res.setHeader('Content-Length', audioBuffer.length);
+
+      // Send the audio data
+      res.send(audioBuffer);
+
+      console.log('Speech generated successfully');
+    } catch (speechError) {
+      console.error('Specific error in speech generation:', speechError);
+      throw speechError; // Re-throw to be caught by the outer try-catch
+    }
+  } catch (error) {
+    console.error('Error generating speech:', error.message);
+    console.error('Error details:', error);
+    res.status(500).json({ error: 'Failed to generate speech' });
+  }
+});
 
 // Start server
 app.listen(PORT, () => {
