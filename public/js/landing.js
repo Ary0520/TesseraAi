@@ -107,19 +107,41 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize loading animation
   initLoadingAnimation();
 
-  // Initialize Enter button
-  document.getElementById('enter-btn').addEventListener('click', function() {
-    // Show loading overlay
-    const loadingOverlay = document.getElementById('loading-overlay');
-    loadingOverlay.style.visibility = 'visible';
-    loadingOverlay.style.opacity = '1';
+  // Initialize Get Started button
+  const getStartedBtn = document.getElementById('get-started-btn');
+  if (getStartedBtn) {
+    getStartedBtn.addEventListener('click', function(e) {
+      e.preventDefault(); // Prevent default anchor behavior
 
-    // Simulate loading progress
-    simulateLoading().then(() => {
-      // Redirect to main app
-      window.location.href = 'index.html';
+      // Show loading overlay
+      const loadingOverlay = document.getElementById('loading-overlay');
+      loadingOverlay.style.visibility = 'visible';
+      loadingOverlay.style.opacity = '1';
+
+      // Simulate loading progress
+      simulateLoading().then(() => {
+        // Redirect to register page
+        window.location.href = '/register';
+      });
     });
-  });
+  }
+
+  // Initialize Enter button (if it exists)
+  const enterBtn = document.getElementById('enter-btn');
+  if (enterBtn) {
+    enterBtn.addEventListener('click', function() {
+      // Show loading overlay
+      const loadingOverlay = document.getElementById('loading-overlay');
+      loadingOverlay.style.visibility = 'visible';
+      loadingOverlay.style.opacity = '1';
+
+      // Simulate loading progress
+      simulateLoading().then(() => {
+        // Redirect to main app
+        window.location.href = '/chatbot';
+      });
+    });
+  }
 });
 
 // Initialize progress rings

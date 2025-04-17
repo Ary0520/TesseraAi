@@ -95,6 +95,15 @@
     <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Check for error message in URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const errorMsg = urlParams.get('error');
+            if (errorMsg) {
+                const errorAlert = document.createElement('div');
+                errorAlert.className = 'error-alert';
+                errorAlert.textContent = decodeURIComponent(errorMsg);
+                document.querySelector('.login-header').appendChild(errorAlert);
+            }
             // Initialize particles.js
             particlesJS('particles-js', {
                 particles: {

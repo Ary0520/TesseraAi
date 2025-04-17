@@ -95,39 +95,53 @@ app.get("/chatbot", isAuthenticated, (req, res)=>{
 });
 
 app.get("/register", (req, res)=>{
-  res.render("register");
+  // Check if there's an error parameter in the URL
+  const error = req.query.error ? decodeURIComponent(req.query.error) : undefined;
+  res.render("register", { error });
 })
 app.post("/register", async(req, res)=>{
   try {
     let {email, password} = req.body;
 
-    // Check if user already exists
-    let existingUser = await userModel.findOne({email}).catch(err => {
-      console.error('Error checking for existing user:', err.message);
-      return null;
-    });
+    // Validate inputs
+    if (!email || !password) {
+      console.log('Missing required fields');
+      return res.status(400).render("register", {error: "Email and password are required"});
+    }
 
-    if(existingUser){
-      console.log(`User with email ${email} already exists`);
-      return res.render("register", {error: "User already exists"});
+    if (password.length < 6) {
+      console.log('Password too short');
+      return res.status(400).render("register", {error: "Password must be at least 6 characters"});
+    }
+
+    // Check if user already exists
+    try {
+      let existingUser = await userModel.findOne({email});
+      if(existingUser){
+        console.log(`User with email ${email} already exists`);
+        return res.status(409).render("register", {error: "User already exists"});
+      }
+    } catch (findErr) {
+      console.error('Error checking for existing user:', findErr.message);
+      return res.status(500).redirect("/register?error=" + encodeURIComponent("Database error. Please try again later."));
     }
 
     // Hash password and create user
     bcrypt.genSalt(10, function(saltErr, salt) {
       if (saltErr) {
         console.error('Error generating salt:', saltErr.message);
-        return res.render("register", {error: "Registration failed. Please try again."});
+        return res.status(500).redirect("/register?error=" + encodeURIComponent("Registration failed. Please try again."));
       }
 
       bcrypt.hash(password, salt, async function(hashErr, hash) {
         if (hashErr) {
           console.error('Error hashing password:', hashErr.message);
-          return res.render("register", {error: "Registration failed. Please try again."});
+          return res.status(500).redirect("/register?error=" + encodeURIComponent("Registration failed. Please try again."));
         }
 
         try {
           // Create the user
-          let newUser = await userModel.create({
+          const newUser = await userModel.create({
             email,
             password: hash
           });
@@ -142,60 +156,70 @@ app.post("/register", async(req, res)=>{
           return res.redirect("/chatbot");
         } catch (createErr) {
           console.error('Error creating user:', createErr.message);
-          return res.render("register", {error: "Registration failed. Please try again."});
+          return res.status(500).redirect("/register?error=" + encodeURIComponent("Registration failed. Please try again."));
         }
       });
     });
   } catch (error) {
     console.error('Unexpected error during registration:', error.message);
-    return res.render("register", {error: "An unexpected error occurred. Please try again."});
+    return res.status(500).redirect("/register?error=" + encodeURIComponent("An unexpected error occurred. Please try again."));
   }
 })
 
 app.get('/login', (req, res) => {
-  res.render("login");
+  // Check if there's an error parameter in the URL
+  const error = req.query.error ? decodeURIComponent(req.query.error) : undefined;
+  res.render("login", { error });
 });
 
 app.post('/login', async(req, res) => {
   try {
     const {email, password} = req.body;
 
+    // Validate inputs
+    if (!email || !password) {
+      console.log('Missing required fields');
+      return res.status(400).render("login", {error: "Email and password are required"});
+    }
+
     // Log the login attempt
     console.log(`Login attempt for email: ${email}`);
 
     // Find the user
-    const user = await userModel.findOne({email}).catch(err => {
-      console.error('Error finding user:', err.message);
-      return null;
-    });
+    try {
+      const user = await userModel.findOne({email});
 
-    if (!user) {
-      console.log(`User with email ${email} not found`);
-      return res.render("login", {error: "Invalid email or password"});
+      if (!user) {
+        console.log(`User with email ${email} not found`);
+        return res.status(401).render("login", {error: "Invalid email or password"});
+      }
+
+      // Compare passwords
+      bcrypt.compare(password, user.password, function(err, result) {
+        if (err) {
+          console.error('Error comparing passwords:', err.message);
+          return res.status(500).redirect("/login?error=" + encodeURIComponent("An error occurred. Please try again."));
+        }
+
+        if (!result) {
+          console.log(`Invalid password for user ${email}`);
+          return res.status(401).render("login", {error: "Invalid email or password"});
+        }
+
+        // Generate JWT token
+        const token = jwt.sign({ email }, process.env.JWT_SECRET_KEY);
+        res.cookie("token", token);
+
+        // Redirect to chatbot page
+        return res.redirect("/chatbot");
+      });
+    } catch (findErr) {
+      console.error('Error finding user:', findErr.message);
+      return res.status(500).redirect("/login?error=" + encodeURIComponent("Database error. Please try again later."));
     }
-
-    // Compare passwords
-    bcrypt.compare(password, user.password, function(err, result) {
-      if (err) {
-        console.error('Error comparing passwords:', err.message);
-        return res.render("login", {error: "An error occurred. Please try again."});
-      }
-
-      if (!result) {
-        console.log(`Invalid password for user ${email}`);
-        return res.render("login", {error: "Invalid email or password"});
-      }
-
-      // Generate JWT token
-      const token = jwt.sign({ email }, process.env.JWT_SECRET_KEY);
-      res.cookie("token", token);
-
-      // Redirect to chatbot page
-      return res.redirect("/chatbot");
-    });
   } catch (error) {
     console.error('Unexpected error during login:', error.message);
-    return res.render("login", {error: "An unexpected error occurred. Please try again."});
+    return res.status(500).redirect("/login?error=" + encodeURIComponent("An unexpected error occurred. Please try again."));
   }
 });
 
