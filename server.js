@@ -1,12 +1,18 @@
+// Load environment variables from .env file first
+const dotenv = require('dotenv');
+dotenv.config();
+
+// Now require all other modules
 const express = require('express');
 const multer = require('multer');
 const { Groq } = require('groq-sdk');
 const path = require('path');
 const fs = require('fs');
-const bcrypt =require('bcrypt');
+const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { Readable } = require('stream');
-const dotenv = require('dotenv');
+const { Buffer } = require('buffer');
+
 // Try to require cookie-parser, or use a simple middleware if not available
 let cookieParser;
 try {
@@ -34,13 +40,19 @@ try {
     };
   };
 }
-const { Buffer } = require('buffer');
-const app = express();
-const PORT = process.env.PORT || 3000; // Changed port to 3001
-const userModel = require("./models/user");
 
-// Load environment variables from .env file
-dotenv.config();
+// Initialize Express app
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Log environment variables status
+console.log('Environment variables loaded:');
+console.log('- API_KEY:', process.env.API_KEY ? 'Present' : 'Missing');
+console.log('- JWT_SECRET_KEY:', process.env.JWT_SECRET_KEY ? 'Present' : 'Missing');
+console.log('- MONGO_URI:', process.env.MONGO_URI ? 'Present' : 'Missing');
+
+// Require user model after environment variables are loaded
+const userModel = require("./models/user");
 
 // Set a default JWT secret key if not provided in .env
 if (!process.env.JWT_SECRET_KEY) {

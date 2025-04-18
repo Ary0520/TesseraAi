@@ -1,43 +1,63 @@
 const mongoose = require('mongoose');
-require('dotenv').config();  
-// Create a dummy user model if MongoDB is not available
-let userSchema;
+const dotenv = require('dotenv');
+
+// Load environment variables from .env file
+dotenv.config();
+
+// Define the schema outside of connection logic
+const userSchema = new mongoose.Schema({
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    lowercase: true,
+    match: [/.+\@.+\..+/, 'Please enter a valid email address']
+  },
+  password: {
+    type: String,
+    required: true,
+    minlength: 6,
+    trim: true
+  },
+});
+
+// Create a variable to hold our model
 let UserModel;
 
-try {
-  // Try to connect to MongoDB
-  mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log('MongoDB connected successfully'))
+// Check if we have a MongoDB URI
+if (!process.env.MONGO_URI) {
+  console.error('MONGO_URI is missing from environment variables');
+  console.log('Using in-memory user storage instead.');
+  setupInMemoryModel();
+} else {
+  // Configure mongoose connection options
+  const options = {
+    serverSelectionTimeoutMS: 5000, // 5 seconds
+    connectTimeoutMS: 10000, // 10 seconds
+  };
+
+  // Connect to MongoDB
+  mongoose.connect(process.env.MONGO_URI, options)
+    .then(() => {
+      console.log('MongoDB connected successfully');
+      // Only create the model after successful connection
+      UserModel = mongoose.model("user", userSchema);
+    })
     .catch(err => {
       console.error('MongoDB connection error:', err.message);
       console.log('Using in-memory user storage instead.');
+      setupInMemoryModel();
     });
 
-
-  // Define the schema
-  userSchema = mongoose.Schema({
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-      lowercase: true,
-      match: [/.+\@.+\..+/, 'Please enter a valid email address']
-    },
-    password: {
-      type: String,
-      required: true,
-      minlength: 6,
-      trim: true
-    },
-  });
-
-  // Create the model
+  // Create the model immediately for use in the application
+  // This is needed because the connection is asynchronous
+  // If connection fails, it will be replaced by the in-memory model
   UserModel = mongoose.model("user", userSchema);
-} catch (err) {
-  console.error('Error setting up MongoDB:', err.message);
-  console.log('Using in-memory user storage instead.');
+}
 
+// Function to set up in-memory model if MongoDB is unavailable
+function setupInMemoryModel() {
   // Create a simple in-memory user store
   const users = [];
 
