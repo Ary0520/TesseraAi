@@ -6,7 +6,7 @@ let UserModel;
 
 try {
   // Try to connect to MongoDB
-  mongoose.connect('mongodb+srv://Aryan:eWggPEzki2feqbVi@cluster0.jg1k1.mongodb.net/hackhazards?retryWrites=true&w=majority&appName=Cluster0')
+  mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log('MongoDB connected successfully'))
     .catch(err => {
       console.error('MongoDB connection error:', err.message);
